@@ -59,7 +59,7 @@ public class LevelTest : MonoBehaviour
 //		_level = Level1.LoadLevel((Hashtable)JSON.JsonDecode(json), _cm.tileResolution);
 
 //        _cm.CreatePlane(_level.Width, _level.Height);
-		_cm.CreatePlane(5, new Vector2(0, 0));
+		_cm.CreateMesh(5, new Point(0, 0));
 
 //		for (var x = 0; x < _level.Width; x++) {
 //			for (var y = 0; y < _level.Height; y++) {

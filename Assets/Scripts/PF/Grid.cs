@@ -8,33 +8,34 @@ public class Grid {
 
 	public int maxSize {
 		get {
-			return (int)(_size.x * _size.y);
+			return _size.x * _size.y;
 		}
 	}
 
-	Vector2 _size;
-	Vector2 _center;
+	Point _size;
+	Point _center;
 	Node[,] _nodes;
-	Pathfinding _pathfinding;
+	Pathfinding _pathfinder;
 
-	public Grid(int size, Vector2 offset, List<Vector2> obstacles) {
-		_size = new Vector2(size, size);
-		_pathfinding = new Pathfinding(this);
-		_center = new Vector2((offset.x + size) - size / 2 - 1, (offset.y + size) - size / 2 - 1);
+	public Grid(int size, Point offset, List<Point> obstacles) {
+		_size = new Point(size, size);
+		_center = new Point((offset.x + size) - size / 2 - 1, (offset.y + size) - size / 2 - 1);
+		_pathfinder = new Pathfinding(this);
 
 		_nodes = new Node[size, size];
 		for (int x = 0; x < size; x++) {
 			for (int y = 0; y < size; y++) {
-				Vector2 worldPosition = new Vector2(x + offset.x, y + offset.y);
-				bool walkable = !obstacles.Contains(worldPosition) ? true : false;
+				Point gridIndex = new Point(x, y);
+				Point worldPosition = new Point(x + offset.x, y + offset.y);
+				bool isWalkable = !obstacles.Contains(worldPosition) ? true : false;
 
-				_nodes[x, y] = new Node(walkable, worldPosition, x, y);
+				_nodes[x, y] = new Node(gridIndex, worldPosition, isWalkable);
 			}
 		}
 	}
 
-	public void Test(Vector2 position) {
-		_pathfinding.FindPath(_center, position);
+	public void Test(Point position) {
+		_pathfinder.FindPath(_center, position);
 	}
 
 	public List<Node> GetNeighbours(Node node) {
@@ -45,8 +46,8 @@ public class Grid {
 				if (x == 0 && y == 0)
 					continue;
 
-				int checkX = node.gridX + x;
-				int checkY = node.gridY + y;
+				int checkX = node.gridIndex.x + x;
+				int checkY = node.gridIndex.y + y;
 
 				if (checkX >= 0 && checkX < _size.x && checkY >= 0 && checkY < _size.y) {
 					neighbours.Add(_nodes[checkX, checkY]);
@@ -57,10 +58,10 @@ public class Grid {
 		return neighbours;
 	}
 
-	public Node NodeFromWorldPosition(Vector2 worldPosition) {
-		Vector2 index = Utility.GridIndexFromWorldPosition(_size, _center, worldPosition);
+	public Node NodeFromWorldPosition(Point worldPosition) {
+		Point index = Utility.GridIndexFromWorldPosition(_size, _center, worldPosition);
 
-		return _nodes[(int)index.x, (int)index.y];
+		return _nodes[index.x, index.y];
 	}
 
 }

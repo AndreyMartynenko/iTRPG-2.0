@@ -8,45 +8,34 @@ public class TileMap : MonoBehaviour {
 	
 	public int tileResolution;
 	public int tileScale;
-	public Vector2 defaultTile;
-	public bool shouldDrawRandomTiles;
 
-	Vector2 _size;
-	Vector2 _center;
+	Point _size;
+	Point _center;
 	float _tileSize;
-	List<Vector2> _obstacles;
+	List<Point> _obstacles;
 
 	Grid _grid;
 
-    void Update() {
-        if (shouldDrawRandomTiles) {
-            DrawRandomTiles();
-        }
-    }
-
-	public void UpdateGrid(Vector2 gridIndex, Vector2 tileIndex) {
-		Mesh mesh = GetComponent<MeshFilter>().mesh;
-		Vector2[] uvs = mesh.uv;
-
-		List<Vector2> updatedUvs = new List<Vector2>();
-		AddUvs(tileIndex, updatedUvs);
-
-		for (int idx = 0; idx < 4; idx++) {
-			uvs[(int)(_size.y * gridIndex.x + gridIndex.y) * 4 + idx] = updatedUvs[idx];
-		}
-
-		mesh.uv = uvs;
-		mesh.RecalculateNormals();
+	enum TileType {
+		Empty = 0,
+		Default,
+		Selected,
+		Obstacle,
+		Enemy
 	}
 
+    void Update() {
+		
+    }
+
 	List<Node> _previousGridPath;
-	public void Test(Vector2 position) {
+	public void Test(Point position) {
 		_grid.Test(position);
 
 		// Clear previous path
 		if (_previousGridPath != null) {
 			foreach (Node node in _previousGridPath) {
-				UpdateGrid(new Vector2(node.gridX, node.gridY), defaultTile);
+				UpdateMesh(node.gridIndex, TileType.Default);
 			}
 		}
 
@@ -55,33 +44,32 @@ public class TileMap : MonoBehaviour {
 			_previousGridPath = _grid.path;
 
 			foreach (Node node in _grid.path) {
-				UpdateGrid(new Vector2(node.gridX, node.gridY), new Vector2(0, 1));
+				UpdateMesh(node.gridIndex, TileType.Selected);
 			}
 		}
 	}
 
-	public void CreatePlane(int gridWidth, int gridHeight) {
-		CreatePlane(gridWidth, gridHeight, Vector2.zero);
+	public void CreateMesh(int gridWidth, int gridHeight) {
+		CreateMesh(gridWidth, gridHeight, Point.zero);
 	}
 
-	public void CreatePlane(int distance, Vector2 center) {
+	public void CreateMesh(int distance, Point center) {
 		_center = center;
 
 		int gridSize = distance * 2 + 1;
-		int offset = distance * tileScale;
+		int offsetValue = distance * tileScale;
+		Point offset = new Point(center.x - offsetValue, center.y - offsetValue);
 
-		Vector2 off = new Vector2(center.x - offset, center.y - offset);
-
-		CreatePlane(gridSize, gridSize, off);
+		CreateMesh(gridSize, gridSize, offset);
 
 		CreateObstacles();
 
 		// Creating the grid for pathfinding
-		_grid = new Grid(gridSize, off, _obstacles);
+		_grid = new Grid(gridSize, offset, _obstacles);
 	}
 
-	private void CreatePlane(int gridWidth, int gridHeight, Vector2 offset) {
-		_size = new Vector2(gridWidth, gridHeight);
+	private void CreateMesh(int gridWidth, int gridHeight, Point offset) {
+		_size = new Point(gridWidth, gridHeight);
 		_tileSize = 1.0f / (GetComponent<MeshRenderer>().materials[0].mainTexture.width / tileResolution);
 
 		Mesh mesh = new Mesh();
@@ -97,7 +85,7 @@ public class TileMap : MonoBehaviour {
 				AddVertices(x, y, offset, tileScale, vertices);
                 AddTriangles(ref index, triangles);
                 AddNormals(normals);
-				AddUvs(defaultTile, uvs);
+				AddUvs(TileIndexFromType(TileType.Default), uvs);
             }
         }
 
@@ -114,7 +102,7 @@ public class TileMap : MonoBehaviour {
 		meshCollider.sharedMesh = mesh;
     }
 
-	private void AddVertices(int x, int y, Vector2 offset, int tileScale, ICollection<Vector3> vertices) {
+	private void AddVertices(int x, int y, Point offset, int tileScale, ICollection<Vector3> vertices) {
 		vertices.Add(new Vector3((x * tileScale) + offset.x, 			 0, (y * tileScale) + offset.y));
 		vertices.Add(new Vector3((x * tileScale) + tileScale + offset.x, 0, (y * tileScale) + offset.y));
 		vertices.Add(new Vector3((x * tileScale) + tileScale + offset.x, 0, (y * tileScale) + tileScale + offset.y));
@@ -122,7 +110,7 @@ public class TileMap : MonoBehaviour {
 	}
 
 	private void AddVertices(int x, int y, int tileScale, ICollection<Vector3> vertices) {
-		AddVertices(x, y, Vector2.zero, tileScale, vertices);
+		AddVertices(x, y, Point.zero, tileScale, vertices);
 	}
 
 	private void AddTriangles(ref int index, ICollection<int> triangles) {
@@ -144,45 +132,70 @@ public class TileMap : MonoBehaviour {
     }
 
 	private void AddUvs(int tileRow, int tileColumn, ICollection<Vector2> uvs) {
-		AddUvs(new Vector2(tileRow, tileColumn), uvs);
+		AddUvs(new Point(tileRow, tileColumn), uvs);
 	}
 
-	private void AddUvs(Vector2 tileIndex, ICollection<Vector2> uvs) {
+	private void AddUvs(Point tileIndex, ICollection<Vector2> uvs) {
 		uvs.Add(new Vector2(tileIndex.x * _tileSize, tileIndex.y * _tileSize));
 		uvs.Add(new Vector2((tileIndex.x + 1) * _tileSize, tileIndex.y * _tileSize));
 		uvs.Add(new Vector2((tileIndex.x + 1) * _tileSize, (tileIndex.y + 1) * _tileSize));
 		uvs.Add(new Vector2(tileIndex.x * _tileSize, (tileIndex.y + 1) * _tileSize));
     }
 
-	private void DrawRandomTiles() {
-		var tileColumn = Random.Range(0, tileResolution);
-		var tileRow = Random.Range(0, tileResolution);
+	private void UpdateMesh(Point gridIndex, TileType tileType) {
+		Mesh mesh = GetComponent<MeshFilter>().mesh;
+		Vector2[] uvs = mesh.uv;
 
-		var x = Random.Range(0, _size.x);
-		var y = Random.Range(0, _size.y);
+		Point tileIndex = TileIndexFromType(tileType);
 
-		UpdateGrid(new Vector2(x, y), new Vector2(tileColumn, tileRow));
+		List<Vector2> updatedUvs = new List<Vector2>();
+		AddUvs(tileIndex, updatedUvs);
+
+		for (int idx = 0; idx < 4; idx++) {
+			uvs[(_size.y * gridIndex.x + gridIndex.y) * 4 + idx] = updatedUvs[idx];
+		}
+
+		mesh.uv = uvs;
+		mesh.RecalculateNormals();
 	}
 
 	private void CreateObstacles() {
 		// Setup
-		_obstacles = new List<Vector2>();
+		_obstacles = new List<Point>();
 
-		_obstacles.Add(new Vector2(0, 3));
-		_obstacles.Add(new Vector2(1, 3));
-		_obstacles.Add(new Vector2(2, 3));
-		_obstacles.Add(new Vector2(3, 3));
+		_obstacles.Add(new Point(0, 3));
+		_obstacles.Add(new Point(1, 3));
+		_obstacles.Add(new Point(2, 3));
+		_obstacles.Add(new Point(3, 3));
 
-		_obstacles.Add(new Vector2(0, 2));
-		_obstacles.Add(new Vector2(0, -2));
+		_obstacles.Add(new Point(0, 2));
+		_obstacles.Add(new Point(0, -2));
 
-		_obstacles.Add(new Vector2(0, -3));
-		_obstacles.Add(new Vector2(-1, -3));
-		_obstacles.Add(new Vector2(-2, -3));
-		_obstacles.Add(new Vector2(-3, -3));
+		_obstacles.Add(new Point(0, -3));
+		_obstacles.Add(new Point(-1, -3));
+		_obstacles.Add(new Point(-2, -3));
+		_obstacles.Add(new Point(-3, -3));
 
-		foreach (Vector2 obstacle in _obstacles) {
-			UpdateGrid(Utility.GridIndexFromWorldPosition(_size, _center, obstacle), new Vector2(1, 1));
+		foreach (Point obstacle in _obstacles) {
+			UpdateMesh(Utility.GridIndexFromWorldPosition(_size, _center, obstacle), TileType.Obstacle);
+		}
+	}
+
+	private Point TileIndexFromType(TileType type) {
+		switch (type) {
+		case TileType.Empty:
+			return new Point(0, 0);
+		case TileType.Default:
+			return new Point(1, 0);
+		case TileType.Selected:
+			return new Point(0, 1);
+		case TileType.Obstacle:
+			return new Point(1, 1);
+		case TileType.Enemy:
+			return new Point(1, 1);
+
+		default:
+			return new Point(0, 0);
 		}
 	}
 
