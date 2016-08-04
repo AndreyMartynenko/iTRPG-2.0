@@ -3,10 +3,9 @@ using System.Collections;
 
 public class Node : IHeapItem<Node> {
 	
-	public bool walkable;
-	public Vector2 worldPosition;
-	public int gridX;
-	public int gridY;
+	public Point gridIndex;
+	public Point worldPosition;
+	public bool isWalkable;
 
 	public int gCost;
 	public int hCost;
@@ -14,11 +13,10 @@ public class Node : IHeapItem<Node> {
 
 	int _heapIndex;
 	
-	public Node(bool walkable, Vector3 worldPosition, int gridX, int gridY) {
-		this.walkable = walkable;
+	public Node(Point gridIndex, Point worldPosition, bool isWalkable) {
+		this.gridIndex = gridIndex;
 		this.worldPosition = worldPosition;
-		this.gridX = gridX;
-		this.gridY = gridY;
+		this.isWalkable = isWalkable;
 	}
 
 	public int fCost {

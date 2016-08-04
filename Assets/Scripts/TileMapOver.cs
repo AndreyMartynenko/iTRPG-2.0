@@ -27,7 +27,7 @@ public class TileMapOver : MonoBehaviour {
 
 				selectionCube.transform.position = _currentTileCoord * _tileMap.tileScale;
 
-				_tileMap.Test(new Vector2(_currentTileCoord.x, _currentTileCoord.z));
+				_tileMap.Test(new Point(_currentTileCoord.x, _currentTileCoord.z));
 			}
 		} else {
 		}

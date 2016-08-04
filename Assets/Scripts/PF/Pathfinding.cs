@@ -10,7 +10,7 @@ public class Pathfinding {
 		_grid = grid;
 	}
 
-	public void FindPath(Vector2 startPosition, Vector2 targetPosition) {
+	public void FindPath(Point startPosition, Point targetPosition) {
 		Node startNode = _grid.NodeFromWorldPosition(startPosition);
 		Node targetNode = _grid.NodeFromWorldPosition(targetPosition);
 
@@ -28,7 +28,7 @@ public class Pathfinding {
 			}
 
 			foreach (Node neighbour in _grid.GetNeighbours(currentNode)) {
-				if (!neighbour.walkable || closedSet.Contains(neighbour)) {
+				if (!neighbour.isWalkable || closedSet.Contains(neighbour)) {
 					continue;
 				}
 
@@ -62,8 +62,8 @@ public class Pathfinding {
 	}
 
 	int GetDistance(Node nodeA, Node nodeB) {
-		int dstX = Mathf.Abs(nodeA.gridX - nodeB.gridX);
-		int dstY = Mathf.Abs(nodeA.gridY - nodeB.gridY);
+		int dstX = Mathf.Abs(nodeA.gridIndex.x - nodeB.gridIndex.x);
+		int dstY = Mathf.Abs(nodeA.gridIndex.y - nodeB.gridIndex.y);
 
 		if (dstX > dstY)
 			return 14 * dstY + 10 * (dstX - dstY);
