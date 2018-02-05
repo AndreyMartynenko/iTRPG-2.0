@@ -1,4 +1,5 @@
-﻿public struct Point {
+﻿//[System.Serializable]
+public struct Point {
 	
 	public int x, y;
 
@@ -57,6 +58,10 @@
 		get {
 			return new Point(0, 0);
 		}
+	}
+
+	public bool IsValid() {
+		return x != -1 && y != -1;
 	}
 
 }
